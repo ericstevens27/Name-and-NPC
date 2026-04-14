@@ -287,7 +287,7 @@ class LinguisticGenerator {
         if (isHyphenated) {
             let part1 = this.baseShift(this.getRandom(lastNames), config.shiftProb);
             let part2 = this.baseShift(this.getRandom(lastNames), config.shiftProb);
-            l = \`\${part1}-\${part2}\`; 
+            l = `${part1}-${part2}`; 
         } else {
             l = this.baseShift(this.getRandom(lastNames), config.shiftProb);
         }
@@ -324,31 +324,31 @@ class LinguisticGenerator {
                 // --- Formatting Logic --- 
                 if (prefix) {
                     if (prefix.endsWith("'") || prefix.endsWith("-") || prefix.endsWith(" ")) {
-                        fullLastName = \`\${prefix}\${fullLastName}\`;
+                        fullLastName = `${prefix}${fullLastName}`;
                     } else {
-                        fullLastName = \`\${prefix} \${fullLastName}\`;
+                        fullLastName = `${prefix} ${fullLastName}`;
                     }
                 }
                 
                 if (suffix) {
                     if (suffix.startsWith("-")) {
-                        fullLastName = \`\${fullLastName}\${suffix}\`;
+                        fullLastName = `${fullLastName}${suffix}`;
                     } else if (suffix.startsWith("+")) {
                         // The invisible '+' instructs us to attach it literally without a space!
-                        fullLastName = \`\${fullLastName}\${suffix.slice(1)}\`;
+                        fullLastName = `${fullLastName}${suffix.slice(1)}`;
                     } else {
-                        fullLastName = \`\${fullLastName} \${suffix}\`;
+                        fullLastName = `${fullLastName} ${suffix}`;
                     }
                 }
                 
                 // Finalizing check: trim() deletes accidental edge empty spaces.
-                fullName = \`\${firstName} \${fullLastName}\`.trim().toLowerCase();
+                fullName = `${firstName} ${fullLastName}`.trim().toLowerCase();
                 
                 // Deduplication check: If our History Set does NOT contain this lowercase name string natively...
                 if (!this.history.has(fullName)) {
                     this.history.add(fullName); // Add it to memory permanently.
                     
-                    let formattedName = \`\${this.capitalize(firstName)} \${fullLastName}\`;
+                    let formattedName = `${this.capitalize(firstName)} ${fullLastName}`;
                     
                     // Call the GUI function passed in via the configuration dict explicitly to draw it to the screen!
                     if (config.onNameGenerated) {
