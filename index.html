@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ethereal | Advanced Name Generator</title>
+    <meta name="description" content="Generate beautiful, culturally-shifted unique names with our advanced linguistic algorithm.">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="background-mesh"></div>
+    
+    <div class="app-container">
+        <header class="app-header">
+            <div class="header-top">
+                <div class="logo">
+                    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 17L12 22L22 17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M2 12L12 17L22 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <h1>Ethereal</h1>
+                </div>
+                <button id="settingsBtn" class="icon-btn" title="API Settings">
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                </button>
+            </div>
+            <p>Advanced Linguistic Resonance Generator</p>
+        </header>
+
+        <main class="main-content">
+            <section class="controls-panel glass-panel">
+                <h2>Configuration</h2>
+                
+                <div class="control-group">
+                    <label for="languageSelect">Linguistic Style</label>
+                    <select id="languageSelect">
+                        <option value="english">English (Default)</option>
+                        <option value="welsh">Welsh (Cymraeg)</option>
+                        <option value="scottish">Scottish Gaelic</option>
+                        <option value="nordic">Nordic</option>
+                        <option value="russian">Slavic / Russian</option>
+                        <option value="arabic">Arabic</option>
+                        <option value="japanese">Japanese</option>
+                        <option value="chinese">Chinese Pinyin</option>
+                        <option value="arrghoun">Arrghoun (Procedural)</option>
+                        <option value="aslan">Aslan (Procedural)</option>
+                        <option value="oynprith">Oynprith (Procedural)</option>
+                        <option value="solomani">Solomani (Procedural)</option>
+                        <option value="zdetl">Zdetl / Zhodani (Procedural)</option>
+                    </select>
+                </div>
+
+                <div class="control-group">
+                    <label for="countInput">Names to Generate: <span id="countValue">10</span></label>
+                    <input type="range" id="countInput" min="1" max="50" value="10" step="1">
+                </div>
+
+                <div class="control-group">
+                    <label for="shiftProb">Linguistic Shift Probability: <span id="shiftValue">30%</span></label>
+                    <input type="range" id="shiftProb" min="0" max="1" value="0.3" step="0.05">
+                </div>
+
+                <div class="control-group">
+                    <label for="hyphenProb">Hyphenation Probability: <span id="hyphenValue">15%</span></label>
+                    <input type="range" id="hyphenProb" min="0" max="1" value="0.15" step="0.05">
+                </div>
+                
+                <div class="control-group">
+                    <label for="prefixProb">Prefix Probability: <span id="prefixValue">25%</span></label>
+                    <input type="range" id="prefixProb" min="0" max="1" value="0.25" step="0.05">
+                </div>
+
+                <div class="control-group">
+                    <label for="suffixProb">Suffix Probability: <span id="suffixValue">25%</span></label>
+                    <input type="range" id="suffixProb" min="0" max="1" value="0.25" step="0.05">
+                </div>
+
+                <button id="generateBtn" class="primary-btn">
+                    <span>Generate Names</span>
+                    <div class="btn-glow"></div>
+                </button>
+            </section>
+
+            <section class="results-panel glass-panel">
+                <div class="results-header">
+                    <h2>Generated Names</h2>
+                    <div class="history-stats">
+                        <span id="uniqueCount">0</span> unique names recorded
+                        <button id="clearHistoryBtn" class="ghost-btn">Clear History</button>
+                    </div>
+                </div>
+                
+                <div class="results-list" id="resultsList">
+                    <div class="empty-state">
+                        <p>Adjust parameters and click generate to discover new names.</p>
+                    </div>
+                </div>
+                
+                <button id="npcGenerateBtn" class="primary-btn hidden" style="margin-top: 1rem; background: linear-gradient(135deg, #10b981, #059669);">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align: middle; margin-right: 8px;"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                    <span>Generate NPC Profiles (<span id="selectedCount">0</span>)</span>
+                </button>
+            </section>
+        </main>
+
+        <!-- Markdown Output Panel -->
+        <section id="npcOutputSection" class="glass-panel hidden" style="margin-top: 2rem;">
+            <div class="results-header" style="flex-wrap: wrap; gap: 1rem;">
+                <h2>NPC Profiles</h2>
+                <div class="history-stats">
+                    <button id="copyMdBtn" class="ghost-btn">Copy Markdown</button>
+                    <button id="downloadMdBtn" class="ghost-btn">Download .md</button>
+                    <button id="closeNpcBtn" class="ghost-btn">Close</button>
+                </div>
+            </div>
+            <div id="markdownContent" class="markdown-body" style="max-height: 600px; overflow-y: auto; padding-right: 1rem;"></div>
+            <pre id="rawMarkdown" class="hidden"></pre>
+        </section>
+    </div>
+
+    <!-- Modals -->
+    <div id="settingsModal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel">
+            <h2>Settings</h2>
+            <div class="control-group">
+                <label for="apiKeyInput">Gemini API Key</label>
+                <input type="password" id="apiKeyInput" placeholder="AIzaSy..." class="text-input">
+                <p class="helper-text" style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">Stored locally in your browser. Required for NPC generation.</p>
+            </div>
+            <button id="saveSettingsBtn" class="primary-btn">Save</button>
+            <button id="closeSettingsBtn" class="ghost-btn" style="width: 100%; margin-top: 0.5rem; text-align: center;">Cancel</button>
+        </div>
+    </div>
+
+    <div id="npcConfigModal" class="modal-overlay hidden">
+        <div class="modal-content glass-panel" style="max-width: 600px; width: 90%;">
+            <h2>Configure NPCs</h2>
+            <div id="npcFormsContainer" style="max-height: 60vh; overflow-y: auto; margin-bottom: 1rem; padding-right: 0.5rem;">
+                <!-- dynamic forms go here -->
+            </div>
+            <button id="startNpcGenBtn" class="primary-btn">Generate using Gemini</button>
+            <button id="closeNpcConfigBtn" class="ghost-btn" style="width: 100%; margin-top: 0.5rem; text-align: center;">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Data dependencies -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="alienData.js"></script>
+    <script src="namesData.js"></script>
+    <script src="generator.js"></script>
+    <script src="gemini-api.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>
