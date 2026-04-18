@@ -27,14 +27,15 @@ body {
         radial-gradient(circle at 15% 50%, rgba(20, 35, 70, 0.5), transparent 25%),
         radial-gradient(circle at 85% 30%, rgba(30, 20, 60, 0.3), transparent 25%);
     color: var(--text-primary);
-    font-family: 'Jura', sans-serif;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.3px;
     min-height: 100vh;
     overflow-x: hidden;
 }
 
 h1, h2, h3 {
-    font-family: 'Orbitron', sans-serif;
-    letter-spacing: 2px;
+    font-family: 'Roboto Mono', monospace;
+    letter-spacing: 1px;
 }
 
 .app-container {
@@ -90,7 +91,7 @@ h1, h2, h3 {
     background: rgba(0, 0, 0, 0.5);
     border: 1px solid var(--border-highlight);
     color: #fff;
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     font-size: 1.5rem;
     padding: 10px 20px;
     border-radius: 6px;
@@ -118,7 +119,8 @@ h1, h2, h3 {
     padding: 8px 16px;
     border-radius: 4px;
     cursor: pointer;
-    font-family: 'Jura', sans-serif;
+    font-family: 'Inter', sans-serif;
+    letter-spacing: 0.5px;
     font-weight: 600;
     transition: all 0.2s;
 }
@@ -207,7 +209,8 @@ h1, h2, h3 {
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Roboto Mono', monospace;
+    letter-spacing: 1px;
     font-size: 0.7rem;
     color: var(--text-secondary);
     padding: 5px;
@@ -256,7 +259,7 @@ h1, h2, h3 {
 }
 
 .day-date {
-    font-family: 'Orbitron', sans-serif;
+    font-family: 'Roboto Mono', monospace;
     font-size: 0.8rem;
     color: var(--text-secondary);
     margin-bottom: 5px;

@@ -1,18 +1,24 @@
 // Global Application State
 const appState = {
     filepath: localStorage.getItem('travellerFilepath') || '',
-    weeksToDisplay: parseInt(localStorage.getItem('travellerWeeksNum')) || 2,
+    weeksBefore: parseInt(localStorage.getItem('travellerWeeksBefore')) !== NaN ? parseInt(localStorage.getItem('travellerWeeksBefore')) : 2,
+    weeksAfter: parseInt(localStorage.getItem('travellerWeeksAfter')) !== NaN ? parseInt(localStorage.getItem('travellerWeeksAfter')) : 2,
     currentDate: '',      // e.g. "1105-001"
     selectedDate: '',     // The date the user clicked on
+    savedCurrentDate: '', // Extracted from file
     notesMap: {},         // Map of "YYYY-DDD" -> { zhodani: "...", event: "Markdown string" }
     originalFileText: '', // Full original markdown text cache to allow precision replacement
     isDirty: false        // Tracks if we have unsaved modifications
 };
 
+if (isNaN(appState.weeksBefore)) appState.weeksBefore = 2;
+if (isNaN(appState.weeksAfter)) appState.weeksAfter = 2;
+
 // DOM Elements
 const els = {
     filepathInput: document.getElementById('filepathInput'),
-    weeksDisplayInput: document.getElementById('weeksDisplayInput'),
+    weeksBeforeInput: document.getElementById('weeksBeforeInput'),
+    weeksAfterInput: document.getElementById('weeksAfterInput'),
     currentDateDisplay: document.getElementById('currentDateDisplay'),
     calendarGrid: document.getElementById('calendarGrid'),
     
@@ -20,6 +26,7 @@ const els = {
     noteEditor: document.getElementById('noteEditor'),
     notePreview: document.getElementById('notePreview'),
     btnTogglePreview: document.getElementById('btnTogglePreview'),
+    btnSetCurrent: document.getElementById('btnSetCurrent'),
     
     btnIncDay: document.getElementById('btnIncDay'),
     btnGasGiant: document.getElementById('btnGasGiant'),
@@ -42,7 +49,6 @@ const els = {
 
 // Utility Date Functions
 function parseDate(dateStr) {
-    // Expected format YYYY-DDD
     const parts = dateStr.trim().split('-');
     if (parts.length !== 2) return null;
     return {
@@ -80,7 +86,15 @@ function parseMarkdownToMap(markdownStr) {
     let inTable = false;
     let headersFound = false;
 
-    // A very loose regex matching markdown table lines: | something | something | something |
+    // Check for Current Date metadata
+    const mdDateRegex = /\*\*Current Date:\*\*\s*([0-9]{4}-[0-9]{3})/;
+    const m = markdownStr.match(mdDateRegex);
+    if (m) {
+        appState.savedCurrentDate = m[1];
+    } else {
+        appState.savedCurrentDate = '';
+    }
+
     const tableLineRegex = /^\|(.*)\|$/;
     
     for (let line of lines) {
@@ -89,31 +103,21 @@ function parseMarkdownToMap(markdownStr) {
             inTable = true;
             const cells = match[1].split('|').map(s => s.trim());
             
-            // Check if it's the header divider
             if (cells.length >= 3 && cells[0].replace(/-/g, '') === '') {
                 headersFound = true;
                 continue;
             }
             
-            // If it's a data row with at least Date, Zhodani Date, Event
             if (headersFound && cells.length >= 3) {
                 const date = cells[0];
                 if (date && date.includes('-')) {
                     const zhodani = cells[1];
-                    const eventText = cells.slice(2).join('|').trim(); // in case event has pipes
-                    
-                    map[date] = {
-                        zhodani: zhodani,
-                        event: eventText
-                    };
+                    const eventText = cells.slice(2).join('|').trim();
+                    map[date] = { zhodani: zhodani, event: eventText };
                 }
             }
         } else {
-            // Unbroken sequence of table lines is done
-            if (inTable && headersFound) {
-                 // Stop parsing the rest if user only had one table, or parse them all? Let's just break on first table
-                 break;
-            }
+            if (inTable && headersFound) break;
         }
     }
     return map;
@@ -121,16 +125,13 @@ function parseMarkdownToMap(markdownStr) {
 
 function constructMarkdownTable(map) {
     const dates = Object.keys(map).sort();
-    
     let md = '| Date | Zhodani Date | Event |\n';
     md += '|---|---|---|\n';
-    
     for (let date of dates) {
         const obj = map[date];
-        const evt = obj.event.replace(/\n/g, '<br>'); // Prevent line breaks in markdown cell
+        const evt = obj.event.replace(/\n/g, '<br>');
         md += `| ${date} | ${obj.zhodani || ''} | ${evt} |\n`;
     }
-    
     return md;
 }
 
@@ -157,18 +158,20 @@ async function readCampaignFile() {
             appState.originalFileText = data.content;
             appState.notesMap = parseMarkdownToMap(data.content);
             
-            // Auto-detect a reasonable currentDate (latest entry)
-            const dates = Object.keys(appState.notesMap).sort();
-            if (dates.length > 0) {
-                appState.currentDate = dates[dates.length - 1];
+            if (appState.savedCurrentDate && parseDate(appState.savedCurrentDate)) {
+                appState.currentDate = appState.savedCurrentDate;
             } else {
-                appState.currentDate = '1105-001';
+                const dates = Object.keys(appState.notesMap).sort();
+                if (dates.length > 0) {
+                    appState.currentDate = dates[dates.length - 1];
+                } else {
+                    appState.currentDate = '1105-001';
+                }
             }
             
             appState.isDirty = false;
             els.currentDateDisplay.value = appState.currentDate;
             selectDate(appState.currentDate);
-            renderCalendar();
             alert('File loaded successfully.');
         } else {
             alert('Error loading file: ' + data.message);
@@ -188,18 +191,29 @@ async function writeCampaignFile() {
     let newFullContent = "";
     const newTable = constructMarkdownTable(appState.notesMap);
     
-    // If we have original file text, replace or append
     if (appState.originalFileText) {
-        // Broad regex to match a Markdown table with our exact columns
-        const tableBlockRegex = /(\|\s*Date\s*\|\s*Zhodani Date\s*\|\s*Event\s*\|[\s\S]*?(?=\n\n|\n$|$))/m;
+        let textBase = appState.originalFileText;
         
-        if (tableBlockRegex.test(appState.originalFileText)) {
-            newFullContent = appState.originalFileText.replace(tableBlockRegex, newTable);
+        // Inject or update Current Date
+        const cdRegex = /\*\*Current Date:\*\*\s*[0-9]{4}-[0-9]{3}/g;
+        if (cdRegex.test(textBase)) {
+            textBase = textBase.replace(cdRegex, `**Current Date:** ${appState.currentDate}`);
         } else {
-            newFullContent = appState.originalFileText + "\n\n" + newTable;
+            if (textBase.includes('| Date |')) {
+                textBase = textBase.replace(/(\| Date \|[\s\S]*)/, `**Current Date:** ${appState.currentDate}\n\n$1`);
+            } else {
+                textBase += `\n\n**Current Date:** ${appState.currentDate}\n`;
+            }
+        }
+        
+        const tableBlockRegex = /(\|\s*Date\s*\|\s*Zhodani Date\s*\|\s*Event\s*\|[\s\S]*?(?=\n\n|\n$|$))/m;
+        if (tableBlockRegex.test(textBase)) {
+            newFullContent = textBase.replace(tableBlockRegex, newTable);
+        } else {
+            newFullContent = textBase + "\n\n" + newTable;
         }
     } else {
-        newFullContent = "# Campaign Log\n\n" + newTable;
+        newFullContent = `# Campaign Log\n\n**Current Date:** ${appState.currentDate}\n\n` + newTable;
     }
     
     try {
@@ -215,6 +229,7 @@ async function writeCampaignFile() {
         const data = await res.json();
         if (data.status === 'success') {
             appState.originalFileText = newFullContent;
+            appState.savedCurrentDate = appState.currentDate;
             appState.isDirty = false;
             updateUI();
         } else {
@@ -233,9 +248,8 @@ function selectDate(dateStr) {
     const entry = appState.notesMap[dateStr];
     els.noteEditor.value = entry ? entry.event.replace(/<br>/g, '\n') : '';
     
-    appState.isDirty = false; // Note editing starts clean for this interaction
+    appState.isDirty = false;
     
-    // Switch to editor view, ensure preview is off
     els.notePreview.classList.remove('visible');
     els.btnTogglePreview.textContent = 'View Markdown';
     
@@ -270,25 +284,27 @@ function renderCalendar() {
     
     els.currentDateDisplay.value = appState.currentDate;
     
-    const weeksLimit = appState.weeksToDisplay;
-    const daysBefore = weeksLimit * 7;
-    const daysAfter = weeksLimit * 7;
+    // Calculate start date alignment bounds
+    // We step backwards until we align with the start of a week before calculating limits.
+    let startD = parseDate(addDays(appState.currentDate, -appState.weeksBefore * 7));
+    while (startD.day !== 1 && (startD.day - 2) % 7 !== 0) {
+        startD = parseDate(addDays(formatDate(startD.year, startD.day), -1));
+    }
     
-    // We want a continuum. Traveller year is 365 days. 
-    // Day 1 is Holiday. Days 2-365 are 52 weeks of 7 days.
+    // Step forward until we align with end of a week
+    let endD = parseDate(addDays(appState.currentDate, appState.weeksAfter * 7));
+    while (endD.day !== 1 && (endD.day - 2) % 7 !== 6) { 
+        endD = parseDate(addDays(formatDate(endD.year, endD.day), 1));
+    }
     
-    // Let's generate dates in chronological order
-    const startDateObj = parseDate(addDays(appState.currentDate, -daysBefore));
-    let cur = formatDate(startDateObj.year, startDateObj.day);
-    
-    const maxDaysRender = daysBefore + daysAfter + 7; // Give some padding
-    let daysIterated = 0;
+    let iterDateStr = formatDate(startD.year, startD.day);
+    let iterDateObj = startD;
+    let maxIter = 365 * 3; // failsafe
+    let iterations = 0;
     
     let currentWeekRow = null;
     let daysContainer = null;
-    let inHolidayRow = false;
 
-    // Small helper to construct a day cell
     function createCell(dStr) {
         const dObj = parseDate(dStr);
         let cell = document.createElement('div');
@@ -306,7 +322,7 @@ function renderCalendar() {
         cell.innerHTML = `
             <div class="day-date">${label}</div>
             <div class="day-event-indicator">
-                ${appState.notesMap[dStr] ? (appState.notesMap[dStr].event || 'Note entry...') : ''}
+                ${appState.notesMap[dStr] ? (appState.notesMap[dStr].event.replace(/<br>/g, ' ') || '') : ''}
             </div>
         `;
         
@@ -314,13 +330,6 @@ function renderCalendar() {
         return cell;
     }
 
-    const startD = parseDate(cur);
-    let iterDateStr = cur;
-    let iterDateObj = startD;
-
-    // To organize by logical Traveller weeks, year begins day 1 (Holiday). 
-    // Week 1 is Days 2-8. Week 52 is Days 359-365.
-    
     function appendNewRow(labelStr) {
         currentWeekRow = document.createElement('div');
         currentWeekRow.className = 'week-row';
@@ -337,16 +346,13 @@ function renderCalendar() {
         els.calendarGrid.appendChild(currentWeekRow);
     }
 
-    // Determine the starting alignment
-    // If iterDateObj.day == 1, it's a holiday row.
-    // Else, week index = Math.floor((iterDateObj.day - 2) / 7) + 1
     let lastWeekIdx = -1;
 
-    for (let i = 0; i < maxDaysRender; i++) {
+    while (iterations < maxIter) {
         if (iterDateObj.day === 1) {
             appendNewRow(iterDateObj.year + ' HOL');
             daysContainer.appendChild(createCell(iterDateStr));
-            lastWeekIdx = -1; // reset for the new year
+            lastWeekIdx = -1; 
         } else {
             const weekIdx = Math.floor((iterDateObj.day - 2) / 7) + 1;
             if (weekIdx !== lastWeekIdx) {
@@ -356,19 +362,23 @@ function renderCalendar() {
             daysContainer.appendChild(createCell(iterDateStr));
         }
         
+        if (iterDateStr === formatDate(endD.year, endD.day)) {
+            break;
+        }
+        
         iterDateStr = addDays(iterDateStr, 1);
         iterDateObj = parseDate(iterDateStr);
+        iterations++;
     }
 }
 
 // Event Listeners
 
-// Header Controls
 els.currentDateDisplay.addEventListener('change', (e) => {
     const val = e.target.value.trim();
     if(parseDate(val)) {
         appState.currentDate = val;
-        renderCalendar();
+        selectDate(val);
     } else {
         els.currentDateDisplay.value = appState.currentDate;
     }
@@ -380,7 +390,6 @@ els.btnIncDay.onclick = () => {
 };
 
 els.btnGasGiant.onclick = () => {
-    // Increment day and forcefully record "Gas Giant Refueling" for that day
     appState.currentDate = addDays(appState.currentDate, 1);
     let note = appState.notesMap[appState.currentDate] || { zhodani: '', event: '' };
     note.event = note.event ? note.event + " <br>**Gas Giant Refueling**" : "**Gas Giant Refueling**";
@@ -389,7 +398,6 @@ els.btnGasGiant.onclick = () => {
 };
 
 els.btnJump.onclick = () => {
-    // Jump distance is typically standard 1 week in hyperspace
     appState.currentDate = addDays(appState.currentDate, 7);
     let note = appState.notesMap[appState.currentDate] || { zhodani: '', event: '' };
     note.event = note.event ? note.event + " <br>**Emerged from Jump Space**" : "**Emerged from Jump Space**";
@@ -399,7 +407,15 @@ els.btnJump.onclick = () => {
 
 els.btnSaveToDisk.onclick = writeCampaignFile;
 
-// Note Editor
+els.btnSetCurrent.onclick = () => {
+    if (appState.selectedDate) {
+        appState.currentDate = appState.selectedDate;
+        appState.isDirty = true;
+        updateUI();
+        renderCalendar();
+    }
+};
+
 els.noteEditor.addEventListener('input', (e) => {
     if (!appState.selectedDate) return;
     const oldNote = appState.notesMap[appState.selectedDate] || {};
@@ -414,7 +430,6 @@ els.btnTogglePreview.onclick = () => {
         els.notePreview.classList.remove('visible');
         els.btnTogglePreview.textContent = 'View Markdown';
     } else {
-        // Use marked if available, fallback if disconnected
         if (typeof marked !== 'undefined') {
             els.notePreview.innerHTML = marked.parse(els.noteEditor.value);
         } else {
@@ -425,10 +440,10 @@ els.btnTogglePreview.onclick = () => {
     }
 };
 
-// Settings Modal
 els.btnSettings.onclick = () => {
     els.filepathInput.value = appState.filepath;
-    els.weeksDisplayInput.value = appState.weeksToDisplay;
+    els.weeksBeforeInput.value = appState.weeksBefore;
+    els.weeksAfterInput.value = appState.weeksAfter;
     els.settingsModal.classList.remove('hidden');
 };
 
@@ -437,17 +452,25 @@ els.closeSettingsBtn.onclick = () => {
 };
 
 els.saveSettingsBtn.onclick = () => {
+    const oldPath = appState.filepath;
+    
     appState.filepath = els.filepathInput.value.trim();
-    appState.weeksToDisplay = parseInt(els.weeksDisplayInput.value, 10) || 2;
+    appState.weeksBefore = parseInt(els.weeksBeforeInput.value, 10) || 0;
+    appState.weeksAfter = parseInt(els.weeksAfterInput.value, 10) || 0;
     
     localStorage.setItem('travellerFilepath', appState.filepath);
-    localStorage.setItem('travellerWeeksNum', appState.weeksToDisplay);
+    localStorage.setItem('travellerWeeksBefore', appState.weeksBefore);
+    localStorage.setItem('travellerWeeksAfter', appState.weeksAfter);
     
     els.settingsModal.classList.add('hidden');
-    readCampaignFile(); // Reload data explicitly with new path
+    
+    if (oldPath !== appState.filepath) {
+        readCampaignFile(); 
+    } else {
+        renderCalendar();
+    }
 };
 
-// Review Modal
 els.btnReview.onclick = () => {
     els.reviewStartInput.value = addDays(appState.currentDate, -7);
     els.reviewEndInput.value = appState.currentDate;
@@ -469,7 +492,7 @@ els.loadReviewBtn.onclick = () => {
     
     let html = '';
     let cur = startStr;
-    const MAX_DAYS = 365 * 3; // sanity max loop threshold
+    const MAX_DAYS = 365 * 3; 
     let limit = 0;
     
     while(limit++ < MAX_DAYS) {
@@ -495,12 +518,10 @@ els.loadReviewBtn.onclick = () => {
 };
 
 // Boot Sequence
-// Try to boot up using local storage values
 if(appState.filepath) {
     readCampaignFile();
 } else {
-    // Blank state init
     appState.currentDate = '1105-001';
-    els.settingsModal.classList.remove('hidden'); // Force open settings
+    els.settingsModal.classList.remove('hidden');
     renderCalendar();
 }

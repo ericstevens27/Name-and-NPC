@@ -3,7 +3,7 @@ import socketserver
 import json
 import os
 
-PORT = 8000
+PORT = 8080
 
 class TrackerHandler(http.server.SimpleHTTPRequestHandler):
     def do_POST(self):
@@ -70,10 +70,23 @@ class TrackerHandler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == "__main__":
     Handler = TrackerHandler
-    with socketserver.TCPServer(("", PORT), Handler) as httpd:
-        print(f"Server started on http://localhost:{PORT}")
+    socketserver.TCPServer.allow_reuse_address = True
+    port_found = False
+    
+    # Try finding an open port starting from PORT
+    while not port_found and PORT < 8090:
         try:
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            pass
-        httpd.server_close()
+            with socketserver.TCPServer(("", PORT), Handler) as httpd:
+                print(f"Server started successfully on http://localhost:{PORT}")
+                port_found = True
+                try:
+                    httpd.serve_forever()
+                except KeyboardInterrupt:
+                    pass
+                httpd.server_close()
+        except OSError as e:
+            if e.errno == 98:
+                print(f"Port {PORT} is already in use, trying next port...")
+                PORT += 1
+            else:
+                raise
